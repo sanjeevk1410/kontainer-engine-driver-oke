@@ -173,7 +173,7 @@ func NewDriver() types.Driver {
 }
 
 func (d *OKEDriver) Remove(ctx context.Context, info *types.ClusterInfo) error {
-	logrus.Debugf("oke.driver.Remove(...) called")
+	logrus.Infof("oke.driver.Remove(...) called")
 	// Delete the cluster along with its node-pools and VCN (and associated network resource)
 
 	state, err := GetState(info)
@@ -225,7 +225,7 @@ func (d *OKEDriver) Remove(ctx context.Context, info *types.ClusterInfo) error {
 }
 
 func GetState(info *types.ClusterInfo) (State, error) {
-	logrus.Debugf("oke.driver.GetState(...) called")
+	logrus.Infof("oke.driver.GetState(...) called")
 	state := State{}
 	err := json.Unmarshal([]byte(info.Metadata["state"]), &state)
 	return state, err
@@ -233,7 +233,7 @@ func GetState(info *types.ClusterInfo) (State, error) {
 
 // GetDriverCreateOptions implements driver interface
 func (d *OKEDriver) GetDriverCreateOptions(ctx context.Context) (*types.DriverFlags, error) {
-	logrus.Debugf("oke.driver.GetDriverCreateOptions(...) called")
+	logrus.Infof("oke.driver.GetDriverCreateOptions(...) called")
 
 	driverFlag := types.DriverFlags{
 		Options: make(map[string]*types.Flag),
@@ -410,7 +410,7 @@ func (d *OKEDriver) GetDriverCreateOptions(ctx context.Context) (*types.DriverFl
 
 // GetDriverUpdateOptions implements driver interface
 func (d *OKEDriver) GetDriverUpdateOptions(ctx context.Context) (*types.DriverFlags, error) {
-	logrus.Debugf("oke.driver.GetDriverUpdateOptions(...) called")
+	logrus.Infof("oke.driver.GetDriverUpdateOptions(...) called")
 
 	driverFlag := types.DriverFlags{
 		Options: make(map[string]*types.Flag),
@@ -428,7 +428,7 @@ func (d *OKEDriver) GetDriverUpdateOptions(ctx context.Context) (*types.DriverFl
 
 // SetDriverOptions implements driver interface
 func GetStateFromOpts(driverOptions *types.DriverOptions) (State, error) {
-	logrus.Debugf("oke.driver.GetStateFromOpts(...) called")
+	logrus.Infof("oke.driver.GetStateFromOpts(...) called")
 
 	// Capture the requested options for the cluster
 	state := State{
@@ -529,7 +529,7 @@ func GetStateFromOpts(driverOptions *types.DriverOptions) (State, error) {
 }
 
 func (s *State) validate() error {
-	logrus.Debugf("oke.driver.validate(...) called")
+	logrus.Infof("oke.driver.validate(...) called")
 	if s.PrivateKeyPath == "" && s.PrivateKeyContents == "" {
 		return fmt.Errorf(`"private-key-path or private-key-contents" are required`)
 	} else if s.TenancyID == "" {
@@ -561,7 +561,7 @@ func (s *State) validate() error {
 
 // Create implements driver interface
 func (d *OKEDriver) Create(ctx context.Context, opts *types.DriverOptions, _ *types.ClusterInfo) (*types.ClusterInfo, error) {
-	logrus.Debugf("oke.driver.Create(...) called")
+	logrus.Infof("oke.driver.Create(...) called")
 
 	state, err := GetStateFromOpts(opts)
 	if err != nil {
@@ -574,7 +574,7 @@ func (d *OKEDriver) Create(ctx context.Context, opts *types.DriverOptions, _ *ty
 	clusterInfo := &types.ClusterInfo{}
 	err = storeState(clusterInfo, state)
 	if err != nil {
-		logrus.Debugf("error storing state %v", err)
+		logrus.Infof("error storing state %v", err)
 		return clusterInfo, err
 	}
 
@@ -597,22 +597,22 @@ func (d *OKEDriver) Create(ctx context.Context, opts *types.DriverOptions, _ *ty
 		vcnID, serviceSubnetIDs, nodeSubnetIds, err = oke.CreateVCNAndNetworkResources(&state)
 
 		if err != nil {
-			logrus.Debugf("error creating the VCN and/or the required network resources %v", err)
+			logrus.Infof("error creating the VCN and/or the required network resources %v", err)
 			return clusterInfo, err
 		}
 
 	} else {
 		// Use an existing VCN and subnets. Besides the VCN and subnets, we are
 		// assuming that the internet gateway, route table, security lists are present and configured correctly.
-		logrus.Debugf("using an existing VCN %s", state.Network.VCNName)
+		logrus.Infof("using an existing VCN %s", state.Network.VCNName)
 		vcnID, err = oke.GetVcnIDByName(ctx, state.Network.VcnCompartmentID, state.Network.VCNName)
 		if err != nil {
-			logrus.Debugf("error looking up the Id of existing VCN %s %v", state.Network.VCNName, err)
+			logrus.Infof("error looking up the Id of existing VCN %s %v", state.Network.VCNName, err)
 			return clusterInfo, err
 		}
 		serviceSubnet1Id, err := oke.GetSubnetIDByName(ctx, state.Network.VcnCompartmentID, vcnID, state.Network.ServiceLBSubnet1Name)
 		if err != nil {
-			logrus.Debugf("error looking up the Id of a Kubernetes service Subnet %s %v", state.Network.ServiceLBSubnet1Name, err)
+			logrus.Infof("error looking up the Id of a Kubernetes service Subnet %s %v", state.Network.ServiceLBSubnet1Name, err)
 			return clusterInfo, err
 		}
 		serviceSubnetIDs = append(serviceSubnetIDs, serviceSubnet1Id)
@@ -620,7 +620,7 @@ func (d *OKEDriver) Create(ctx context.Context, opts *types.DriverOptions, _ *ty
 		if state.Network.ServiceLBSubnet2Name != "" {
 			serviceSubnet2Id, err := oke.GetSubnetIDByName(ctx, state.Network.VcnCompartmentID, vcnID, state.Network.ServiceLBSubnet2Name)
 			if err != nil {
-				logrus.Debugf("error looking up the Id of a Kubernetes service Subnet %s %v", state.Network.ServiceLBSubnet2Name, err)
+				logrus.Infof("error looking up the Id of a Kubernetes service Subnet %s %v", state.Network.ServiceLBSubnet2Name, err)
 				return clusterInfo, err
 			}
 			serviceSubnetIDs = append(serviceSubnetIDs, serviceSubnet2Id)
@@ -646,31 +646,31 @@ func (d *OKEDriver) Create(ctx context.Context, opts *types.DriverOptions, _ *ty
 
 	clusterID, err := oke.GetClusterByName(ctx, state.CompartmentID, state.Name)
 	if err == nil && len(clusterID) > 0 {
-		logrus.Debugf("warning: an existing cluster with name %s already exists in compartment %s", state.Name, state.CompartmentID)
+		logrus.Infof("warning: an existing cluster with name %s already exists in compartment %s", state.Name, state.CompartmentID)
 	}
 
 	logrus.Infof("Creating OKE cluster %s", state.Name)
 	err = oke.CreateCluster(ctx, &state, vcnID, serviceSubnetIDs, nodeSubnetIds)
 	if err != nil {
-		logrus.Debugf("error creating the OKE cluster %v", err)
+		logrus.Infof("error creating the OKE cluster %v", err)
 		return clusterInfo, err
 	}
 	err = storeState(clusterInfo, state)
 	if err != nil {
-		logrus.Debugf("error storing state %v", err)
+		logrus.Infof("error storing state %v", err)
 		return clusterInfo, err
 	}
 
 	logrus.Infof("Creating node pool for %s", state.Name)
 	err = oke.CreateNodePool(ctx, &state, vcnID, serviceSubnetIDs, nodeSubnetIds)
 	if err != nil {
-		logrus.Debugf("error creating the node pool %v", err)
+		logrus.Infof("error creating the node pool %v", err)
 		return clusterInfo, err
 	}
 
 	err = storeState(clusterInfo, state)
 	if err != nil {
-		logrus.Debugf("error storing state %v", err)
+		logrus.Infof("error storing state %v", err)
 		return clusterInfo, err
 	}
 
@@ -679,7 +679,7 @@ func (d *OKEDriver) Create(ctx context.Context, opts *types.DriverOptions, _ *ty
 
 // Update implements driver interface
 func (d *OKEDriver) Update(ctx context.Context, info *types.ClusterInfo, opts *types.DriverOptions) (*types.ClusterInfo, error) {
-	logrus.Debugf("oke.driver.Update(...) called")
+	logrus.Infof("oke.driver.Update(...) called")
 	state, err := GetState(info)
 	if err != nil {
 		return nil, err
@@ -712,7 +712,7 @@ func (d *OKEDriver) Update(ctx context.Context, info *types.ClusterInfo, opts *t
 }
 
 func (d *OKEDriver) PostCheck(ctx context.Context, info *types.ClusterInfo) (*types.ClusterInfo, error) {
-	logrus.Debugf("oke.driver.PostCheck(...) called")
+	logrus.Infof("oke.driver.PostCheck(...) called")
 	state, err := GetState(info)
 	if err != nil {
 		return nil, err
@@ -773,7 +773,7 @@ func (d *OKEDriver) PostCheck(ctx context.Context, info *types.ClusterInfo) (*ty
 }
 
 func (d *OKEDriver) GetClusterSize(ctx context.Context, info *types.ClusterInfo) (*types.NodeCount, error) {
-	logrus.Debugf("oke.driver.GetClusterSize(...) called")
+	logrus.Infof("oke.driver.GetClusterSize(...) called")
 	state, err := GetState(info)
 	if err != nil {
 		return nil, err
@@ -821,7 +821,7 @@ func storeState(info *types.ClusterInfo, state State) error {
 }
 
 func (d *OKEDriver) GetVersion(ctx context.Context, info *types.ClusterInfo) (*types.KubernetesVersion, error) {
-	logrus.Debugf("oke.driver.GetVersion(...) called")
+	logrus.Infof("oke.driver.GetVersion(...) called")
 	state, err := GetState(info)
 	if err != nil {
 		return nil, err
@@ -843,7 +843,7 @@ func (d *OKEDriver) GetVersion(ctx context.Context, info *types.ClusterInfo) (*t
 }
 
 func (d *OKEDriver) SetClusterSize(ctx context.Context, info *types.ClusterInfo, count *types.NodeCount) error {
-	logrus.Debugf("oke.driver.SetClusterSize(...) called")
+	logrus.Infof("oke.driver.SetClusterSize(...) called")
 	state, err := GetState(info)
 	if err != nil {
 		return err
@@ -884,7 +884,7 @@ func (d *OKEDriver) SetClusterSize(ctx context.Context, info *types.ClusterInfo,
 }
 
 func (d *OKEDriver) SetVersion(ctx context.Context, info *types.ClusterInfo, version *types.KubernetesVersion) error {
-	logrus.Debugf("oke.driver.SetVersion(...) called")
+	logrus.Infof("oke.driver.SetVersion(...) called")
 
 	state, err := GetState(info)
 	if err != nil {
@@ -898,7 +898,7 @@ func (d *OKEDriver) SetVersion(ctx context.Context, info *types.ClusterInfo, ver
 	// Does not currently wait
 	mErr := oke.UpdateMasterKubernetesVersion(ctx, state.ClusterID, version.Version)
 	if mErr != nil {
-		logrus.Debugf("warning: could not update the version of Kubernetes master(s)")
+		logrus.Infof("warning: could not update the version of Kubernetes master(s)")
 	}
 
 	nodePoolIds, err := oke.ListNodepoolIdsInCluster(ctx, state.CompartmentID, state.ClusterID)
@@ -910,14 +910,14 @@ func (d *OKEDriver) SetVersion(ctx context.Context, info *types.ClusterInfo, ver
 	for _, nodePoolID := range nodePoolIds {
 		nodePool, err := oke.GetNodePoolByID(ctx, nodePoolID)
 		if err != nil {
-			logrus.Debugf("could not retrieve node pool")
+			logrus.Infof("could not retrieve node pool")
 			continue
 		}
 		logrus.Infof("Updating the version of Kubernetes to %s", version.Version)
 		nextNpErr := oke.UpdateNodepoolKubernetesVersion(ctx, *nodePool.Id, version.Version)
 		if nextNpErr != nil {
 			npErr = nextNpErr
-			logrus.Debugf("warning: could not update the version of Kubernetes master(s)")
+			logrus.Infof("warning: could not update the version of Kubernetes master(s)")
 		}
 	}
 
@@ -933,27 +933,27 @@ func (d *OKEDriver) SetVersion(ctx context.Context, info *types.ClusterInfo, ver
 }
 
 func (d *OKEDriver) GetCapabilities(ctx context.Context) (*types.Capabilities, error) {
-	logrus.Debugf("oke.driver.GetCapabilities(...) called")
+	logrus.Infof("oke.driver.GetCapabilities(...) called")
 	return &d.driverCapabilities, nil
 }
 
 func (d *OKEDriver) ETCDSave(ctx context.Context, clusterInfo *types.ClusterInfo, opts *types.DriverOptions, snapshotName string) error {
-	logrus.Debugf("oke.driver.ETCDSave(...) called")
+	logrus.Infof("oke.driver.ETCDSave(...) called")
 	return fmt.Errorf("ETCD backup operations are not implemented")
 }
 
 func (d *OKEDriver) ETCDRestore(ctx context.Context, clusterInfo *types.ClusterInfo, opts *types.DriverOptions, snapshotName string) (*types.ClusterInfo, error) {
-	logrus.Debugf("oke.driver.ETCDRestore(...) called")
+	logrus.Infof("oke.driver.ETCDRestore(...) called")
 	return nil, fmt.Errorf("ETCD backup operations are not implemented")
 }
 
 func (d *OKEDriver) ETCDRemoveSnapshot(ctx context.Context, clusterInfo *types.ClusterInfo, opts *types.DriverOptions, snapshotName string) error {
-	logrus.Debugf("oke.driver.ETCDRemoveSnapshot(...) called")
+	logrus.Infof("oke.driver.ETCDRemoveSnapshot(...) called")
 	return fmt.Errorf("ETCD backup operations are not implemented")
 }
 
 func (d *OKEDriver) GetK8SCapabilities(ctx context.Context, options *types.DriverOptions) (*types.K8SCapabilities, error) {
-	logrus.Debugf("oke.driver.GetK8SCapabilities(...) called")
+	logrus.Infof("oke.driver.GetK8SCapabilities(...) called")
 
 	// TODO OCI supports persistent volumes as well
 	capabilities := &types.K8SCapabilities{
@@ -969,7 +969,7 @@ func (d *OKEDriver) GetK8SCapabilities(ctx context.Context, options *types.Drive
 }
 
 func (d *OKEDriver) RemoveLegacyServiceAccount(ctx context.Context, info *types.ClusterInfo) error {
-	logrus.Debugf("oke.driver.RemoveLegacyServiceAccount(...) called")
+	logrus.Infof("oke.driver.RemoveLegacyServiceAccount(...) called")
 	// TODO
 	return nil
 }
