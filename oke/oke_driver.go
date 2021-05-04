@@ -51,6 +51,10 @@ type OKEDriver struct {
 }
 
 type State struct {
+
+	// Should the Pod Security policies be enabled
+	EnablePodSecurity bool
+
 	// Should the Kubernetes dashboard be enabled
 	EnableKubernetesDashboard bool
 
@@ -300,7 +304,11 @@ func (d *OKEDriver) GetDriverCreateOptions(ctx context.Context) (*types.DriverFl
 	}
 	driverFlag.Options["enable-tiller"] = &types.Flag{
 		Type:  types.BoolType,
-		Usage: "Enable the kubernetes dashboard",
+		Usage: "Enable Tiller",
+	}
+	driverFlag.Options["enable-pod-security"] = &types.Flag{
+		Type:  types.BoolType,
+		Usage: "Enable the kubernetes pod security policies",
 	}
 	driverFlag.Options["skip-vcn-delete"] = &types.Flag{
 		Type:  types.BoolType,
@@ -440,6 +448,7 @@ func GetStateFromOpts(driverOptions *types.DriverOptions) (State, error) {
 
 	state.CompartmentID = options.GetValueFromDriverOptions(driverOptions, types.StringType, "compartment-id", "compartmentId").(string)
 	state.Description = options.GetValueFromDriverOptions(driverOptions, types.StringType, "description").(string)
+	state.EnablePodSecurity = options.GetValueFromDriverOptions(driverOptions, types.BoolType, "enable-pod-security", "enablePodSecurity").(bool)
 	state.EnableKubernetesDashboard = options.GetValueFromDriverOptions(driverOptions, types.BoolType, "enable-kubernetes-dashboard", "enableKubernetesDashboard").(bool)
 	state.EnableTiller = options.GetValueFromDriverOptions(driverOptions, types.BoolType, "enable-tiller", "enableTiller").(bool)
 	state.SkipVCNDelete = options.GetValueFromDriverOptions(driverOptions, types.BoolType, "skip-vcn-delete", "skipVCNDelete").(bool)

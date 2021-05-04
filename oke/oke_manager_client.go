@@ -127,6 +127,9 @@ func (mgr *ClusterManagerClient) CreateCluster(ctx context.Context, state *State
 			IsKubernetesDashboardEnabled: common.Bool(state.EnableKubernetesDashboard),
 			IsTillerEnabled:              common.Bool(state.EnableTiller),
 		},
+		AdmissionControllerOptions: &containerengine.AdmissionControllerOptions{
+			IsPodSecurityPolicyEnabled: common.Bool(state.EnablePodSecurity),
+		},
 	}
 
 	clusterResp, err := mgr.containerEngineClient.CreateCluster(ctx, cReq)
